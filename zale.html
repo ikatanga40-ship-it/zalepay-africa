@@ -168,6 +168,8 @@
         say("1/2 Approving..."); await (await tok.approve(r, amts.reduce((a,b) => a+b, 0n))).wait();
         say("2/2 Splitting..."); const tx = await (new ethers.Contract(r, ABI, s)).splitTransfer(t, recs, amts);
         say("Split Sent! Tx: " + (await tx.wait()).hash);
+      } catch (e) { say("Error: " + (e.shortmessage || e.message)); }
+    }
     setCountry();
   </script>
 </body>
