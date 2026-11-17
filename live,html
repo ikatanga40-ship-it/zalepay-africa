@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZalePay Africa</title>
+  <script src="https://cloudflare.com"></script>
+  <style>
+    body{background:#020617;color:#fff;font-family:sans-serif;padding:16px;max-width:480px;margin:auto}
+    .box{background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;margin-top:12px}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:12px}
+    button{background:#10b981;color:#020617;border:none;border-radius:8px;padding:10px;font-weight:700;cursor:pointer}
+    .off{background:#1e293b;color:#94a3b8}
+    input,select{width:100%;box-sizing:border-box;background:#020617;color:#fff;border:1px solid #334155;border-radius:8px;padding:9px;margin-top:8px}
+    .hide{display:none}
+    #msg{background:#0f172a;border:1px solid #10b981;color:#6ee7b7;padding:10px;border-radius:8px;font-size:12px;margin-top:10px;word-break:break-all}
+  </style>
+</head>
+<body>
+  <div class="row">
+    <h2 style="color:#34d399;margin:0">ZalePay Africa</h2>
+    <button id="btn" onclick="connect()">Connect Wallet</button>
+  </div>
+  <div id="msg">Ready. Click Connect Wallet.</div>
+  <div class="box row">
+    <select id="cty" onchange="setCty()" style="margin:0"><option value="ZM">Zambia (ZMW)</option><option value="NG">Nigeria (NGN)</option><option value="KE">Kenya (KES)</option><option value="GH">Ghana (GHS)</option><option value="ZA">South Africa (ZAR)</option></select>
+    <input id="rtr" placeholder="0x... ZalePay Router" style="margin:0" />
+  </div>
+  <div class="tabs">
+    <button id="t-swap" onclick="show('swap')">Swap</button>
+    <button id="t-card" class="off" onclick="show('card')">Cards</button>
+    <button id="t-bill" class="off" onclick="show('bill')">Bills</button>
+    <button id="t-safe" class="off" onclick="show('safe')">Safe-PIN</button>
+    <button id="t-split" class="off" onclick="show('split')">Split</button>
+  </div>
+  <div id="p-swap" class="box">
+    <b>Crypto Swap & Cashout</b>
+    <select id="rail"></select>
+    <input id="sAmt" oninput="calc()" type="number" placeholder="Amount in USD" />
+    <input id="sDst" placeholder="Mobile Money / Bank Number" />
+    <p id="sEst" style="color:#34d399;font-size:12px">Payout: 0</p>
+    <button style="width:100%" onclick="order('Swap')">Execute Swap</button>
+  </div>
+  <div id="p-card" class="box hide">
+    <b>Trade Gift Cards</b>
+    <select id="cBrd" onchange="calc()"><option value="0.82">Amazon (82%)</option><option value="0.80">Apple/iTunes (80%)</option><option value="0.84">Steam (84%)</option><option value="0.85">Razer Gold (85%)</option></select>
+    <input id="cVal" oninput="calc()" type="number" placeholder="Card USD ($)" />
+    <input id="cPin" placeholder="Card E-Code / PIN" />
+    <p id="cEst" style="color:#34d399;font-size:12px">Receive: 0</p>
+    <button style="width:100%" onclick="order('Gift Card')">Submit Card</button>
+  </div>
+  <div id="p-bill" class="box hide">
+    <b>Airtime & Utility Bills</b>
+    <select id="prov"></select>
+    <input id="bNum" placeholder="Phone / Meter Number" />
+    <input id="bAmt" type="number" placeholder="Amount (USDC)" />
+    <button style="width:100%;margin-top:8px" onclick="order('Bill')">Pay Bill</button>
+  </div>
+  <div id="p-safe" class="box hide">
+    <b>Safe-Claim 4-Digit PIN Link</b>
+    <input id="eTok" placeholder="Token Address (0x...)" />
+    <input id="eAmt" type="number" placeholder="Amount" />
+    <input id="ePin" placeholder="4-Digit PIN" />
+    <button style="width:100%;margin-top:8px" onclick="escrow()">Create PIN Link</button>
+  </div>
+  <div id="p-split" class="box hide">
+    <b>Multi-Wallet Auto-Split</b>
+    <input id="spTok" placeholder="Token Address (0x...)" />
+    <input id="spRec" placeholder="Wallets: 0x1..., 0x2..." />
+    <input id="spAmt" placeholder="Amounts: 70, 30" />
+    <button style="width:100%;margin-top:8px" onclick="split()">Send Split</button>
+  </div>
+  <script>
+    const D={ZM:{s:"K",r:27.5,rl:["MTN MoMo","Airtel Money","Zamtel","Zanaco/FNB","USDT"],bl:["MTN ZM","Airtel ZM","ZESCO","DStv"]},NG:{s:"₦",r:1620,rl:["OPay/PalmPay","NG Bank","USDT"],bl:["MTN NG","Airtel NG","IKEDC","DStv"]},KE:{s:"KSh",r:129,rl:["M-Pesa","Airtel","KCB","USDT"],bl:["Safaricom","Airtel KE","KPLC","DStv"]},GH:{s:"₵",r:15.8,rl:["MTN MoMo","Telecel","GCB","USDT"],bl:["MTN GH","Telecel","ECG","DStv"]},ZA:{s:"R",r:18.2,rl:["FNB/Capitec","Standard","USDT"],bl:["Vodacom/MTN","Eskom","DStv"]}};
+    const ABI=["function createEscrow(address,uint256,bytes32,uint256) external returns(bytes32)","function splitTransfer(address,address[],uint256[]) external"];
+    const ERC=["function approve(address,uint256) external returns(bool)","function decimals() external view returns(uint8)"];
+    let acct="";
+    const say=t=>document.getElementById('msg').textContent=t;
+    function setCty(){const d=D[document.getElementById('cty').value];document.getElementById('rail').innerHTML=d.rl.map(x=>`<option>${x}</option>`).join('');document.getElementById('prov').innerHTML=d.bl.map(x=>`<option>${x}</option>`).join('');calc();}
+    function calc(){const d=D[document.getElementById('cty').value],a=parseFloat(document.getElementById('sAmt').value)||0,c=(parseFloat(document.getElementById('cVal').value)||0)*(parseFloat(document.getElementById('cBrd').value)||0.8);document.getElementById('sEst').textContent=`Payout: ${d.s}${(a*d.r).toLocaleString()} ($${a} USDT)`;document.getElementById('cEst').textContent=`Receive: $${c.toFixed(2)} USDT (${d.s}${(c*d.r).toLocaleString()})`;}
+    function show(k){['swap','card','bill','safe','split'].forEach(x=>{document.getElementById('p-'+x).classList.toggle('hide',x!==k);document.getElementById('t-'+x).className=x===k?'':'off';});}
+    async function connect(){try{if(!window.ethereum)return say("Install MetaMask in Chrome.");const a=await window.ethereum.request({method:"eth_requestAccounts"});acct=a[0];document.getElementById('btn').textContent=acct.slice(0,6)+"..."+acct.slice(-4);say("Connected: "+acct);}catch(e){say("Error: "+e.message);}}
+    async function order(t){if(!acct)await connect();say(t+" logged for "+(acct||"guest"));}
+    async function escrow(){try{if(!acct)await connect();const s=await(new ethers.BrowserProvider(window.ethereum)).getSigner(),r=document.getElementById('rtr').value.trim(),t=document.getElementById('eTok').value.trim(),tk=new ethers.Contract(t,ERC,s),amt=ethers.parseUnits(document.getElementById('eAmt').value.trim(),await tk.decimals()),h=ethers.keccak256(ethers.toUtf8Bytes(document.getElementById('ePin').value.trim()));say("1/2 Approving...");await(await tk.approve(r,amt)).wait();say("2/2 Locking...");const tx=await(new ethers.Contract(r,ABI,s)).createEscrow(t,amt,h,604800);say("PIN Link Active! Tx: "+(await tx.wait()).hash);}catch(e){say("Error: "+(e.shortMessage||e.message));}}
+    async function split(){try{if(!acct)await connect();const s=await(new ethers.BrowserProvider(window.ethereum)).getSigner(),r=document.getElementById('rtr').value.trim(),t=document.getElementById('spTok').value.trim(),rc=document.getElementById('spRec').value.split(',').map(x=>x.trim()),tk=new ethers.Contract(t,ERC,s),dc=await tk.decimals(),am=document.getElementById('spAmt').value.split(',').map(x=>ethers.parseUnits(x.trim(),dc));say("1/2 Approving...");await(await tk.approve(r,am.reduce((a,b)=>a+b,0n))).wait();say("2/2 Splitting...");const tx=await(new ethers.Contract(r,ABI,s)).splitTransfer(t,rc,am);say("Split Sent! Tx: "+(await tx.wait()).hash);}catch(e){say("Error: "+(e.shortMessage||e.message));}}
+    setCty();
+  </script>
+</body>
+</html>
