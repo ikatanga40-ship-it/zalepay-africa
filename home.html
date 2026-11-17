@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OmniPay Africa — Crypto Swap, Gift Cards, Bills & Safe-Claim</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com"></script>
+</head>
+<body class="bg-slate-950 text-white min-h-screen font-sans">
+  <div class="max-w-xl mx-auto px-4 py-8">
+    <!-- Top Bar -->
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-emerald-400">OmniPay Africa</h1>
+        <p class="text-xs text-slate-400">Pan-African Crypto • Gift Cards • Bills • Safe-Claim</p>
+      </div>
+      <button id="connectBtn" type="button" onclick="connectWallet()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm px-4 py-2 rounded-xl">
+        Connect Wallet
+      </button>
+    </div>
+
+    <!-- Country Selector & Contract Setup -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3">
+        <label class="block text-xs text-slate-400 mb-1">Select Country & Currency</label>
+        <select id="countrySelect" onchange="updateCountry()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+          <option value="NG">Nigeria (NGN ₦)</option>
+          <option value="ZM">Zambia (ZMW K)</option>
+          <option value="KE">Kenya (KES KSh)</option>
+          <option value="GH">Ghana (GHS ₵)</option>
+          <option value="ZA">South Africa (ZAR R)</option>
+        </select>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3">
+        <label class="block text-xs text-slate-400 mb-1">OmniPay Router Contract</label>
+        <input id="contractAddr" type="text" placeholder="Paste 0x... contract address" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-emerald-300" />
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="grid grid-cols-5 gap-1.5 bg-slate-900 p-1.5 rounded-2xl mb-6 border border-slate-800 text-center">
+      <button type="button" onclick="switchTab('swap')" id="tab-swap" class="py-2 text-xs font-semibold rounded-xl bg-emerald-500 text-slate-950">Swap</button>
+      <button type="button" onclick="switchTab('cards')" id="tab-cards" class="py-2 text-xs font-semibold rounded-xl text-slate-400">Gift Cards</button>
+      <button type="button" onclick="switchTab('bills')" id="tab-bills" class="py-2 text-xs font-semibold rounded-xl text-slate-400">Bills</button>
+      <button type="button" onclick="switchTab('safe')" id="tab-safe" class="py-2 text-xs font-semibold rounded-xl text-slate-400">Safe-Claim</button>
+      <button type="button" onclick="switchTab('split')" id="tab-split" class="py-2 text-xs font-semibold rounded-xl text-slate-400">Auto-Split</button>
+    </div>
+
+    <!-- Tab 1: Crypto Swap & Cashout -->
+    <div id="panel-swap" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+      <h2 class="text-lg font-semibold">Crypto Swap & Local Cashout</h2>
+      <p class="text-xs text-slate-400">Swap crypto or cash out directly to local banks & mobile money.</p>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">You Send</label>
+          <select id="swapFrom" onchange="calcSwap()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm">
+            <option value="USDT">USDT</option>
+            <option value="USDC">USDC</option>
+            <option value="ETH">ETH</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Payout Rail</label>
+          <select id="payoutRail" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm"></select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Amount (USD / Crypto)</label>
+        <input id="swapAmt" oninput="calcSwap()" type="number" step="any" placeholder="100" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Bank Account / Mobile Money Number</label>
+        <input id="swapDest" type="text" placeholder="Enter account or phone number" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm" />
+      </div>
+      <div id="swapEstimate" class="text-xs text-emerald-400 font-medium">Estimated Payout: 0</div>
+      <button type="button" onclick="submitOrder('Crypto Swap / Cashout')" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 rounded-xl">
+        Execute Swap / Cashout
+      </button>
+    </div>
+
+    <!-- Tab 2: Gift Card Exchange -->
+    <div id="panel-cards" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+      <h2 class="text-lg font-semibold">Trade Gift Cards for Cash or USDT</h2>
+      <p class="text-xs text-slate-400">Instant payout in local currency or USDT stablecoin.</p>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Select Gift Card</label>
+        <select id="cardBrand" onchange="calcCard()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm">
+          <option value="0.82">Amazon US (82% Rate)</option>
+          <option value="0.80">Apple / iTunes (80% Rate)</option>
+          <option value="0.84">Steam Wallet (84% Rate)</option>
+          <option value="0.85">Razer Gold (85% Rate)</option>
+          <option value="0.78">Google Play / Sephora (78% Rate)</option>
+        </select>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Card Value ($ USD)</label>
+          <input id="cardValue" oninput="calcCard()" type="number" placeholder="100" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">E-Code / Card PIN</label>
+          <input id="cardCode" type="text" placeholder="XXXX-XXXX-XXXX" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm" />
+        </div>
+      </div>
+      <div id="cardEstimate" class="text-xs text-emerald-400 font-medium">You Receive: 0</div>
+      <button type="button" onclick="submitOrder('Gift Card Trade')" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 rounded-xl">
+        Submit Card for Instant Payout
+      </button>
+    </div>
+
+    <!-- Tab 3: Pan-African Airtime & Utility Bills -->
+    <div id="panel-bills" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+      <h2 class="text-lg font-semibold">Pay Airtime & Utility Bills</h2>
+      <p class="text-xs text-slate-400">Top up mobile networks, electricity, and TV across Africa.</p>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Select Provider</label>
+        <select id="billProvider" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm"></select>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Phone / Meter Number</label>
+          <input id="billAccount" type="text" placeholder="Enter number" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Amount (USDC)</label>
+          <input id="billAmount" type="number" placeholder="10" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm" />
+        </div>
+      </div>
+      <button type="button" onclick="submitOrder('Utility Bill Payment')" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 rounded-xl">
+        Pay Bill with Crypto
+      </button>
+    </div>
+
+    <!-- Tab 4: Safe-Claim PIN Link -->
+    <div id="panel-safe" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+      <h2 class="text-lg font-semibold">Safe-Claim 4-Digit PIN Link</h2>
+      <p class="text-xs text-slate-400">Lock tokens on-chain until the recipient enters your secret PIN.</p>
+      <input id="safeToken" type="text" placeholder="Token Address (0x...)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm" />
+      <div class="grid grid-cols-2 gap-3">
+        <input id="safeAmount" type="number" step="any" placeholder="Amount (e.g. 50)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm" />
+        <input id="safePin" type="text" placeholder="Secret PIN (e.g. 4829)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm" />
+      </div>
+      <button type="button" onclick="createSafeClaim()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 rounded-xl">
+        Lock & Generate Safe-Claim Link
+      </button>
+    </div>
+
+    <!-- Tab 5: Auto-Split -->
+    <div id="panel-split" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+      <h2 class="text-lg font-semibold">Instant Multi-Wallet Split</h2>
+      <p class="text-xs text-slate-400">Split one payment across multiple wallets in one transaction.</p>
+      <input id="splitToken" type="text" placeholder="Token Address (0x...)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm" />
+      <input id="splitRecipients" type="text" placeholder="Wallets: 0xWallet1..., 0xWallet2..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm" />
